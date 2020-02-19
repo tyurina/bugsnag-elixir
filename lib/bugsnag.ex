@@ -63,15 +63,23 @@ defmodule Bugsnag do
     stacktrace = options[:stacktrace] || System.stacktrace()
 
     if should_notify(exception, stacktrace) do
+      Logger.info("Decided to notify")
       if Application.get_env(:bugsnag, :api_key) do
+        Logger.info "Got the api key"
         exception
         |> Payload.new(stacktrace, options)
         |> Payload.encode()
         |> send_notification
         |> case do
-          {:ok, %{status_code: 200}} -> :ok
-          {:ok, %{status_code: other}} -> {:error, "status_#{other}"}
-          {:error, %{reason: reason}} -> {:error, reason}
+          {:ok, %{status_code: 200}} ->
+            Logger.info "Sent"
+            :ok
+          {:ok, %{status_code: other}} ->
+            Logger.info "Problem sending #{other}"
+            {:error, "status_#{other}"}
+          {:error, %{reason: reason}} ->
+            Logger.info "Something #{reason}"
+            {:error, reason}
           _ -> {:error, :unknown}
         end
       else
@@ -94,6 +102,7 @@ defmodule Bugsnag do
   end
 
   def should_notify(exception, stacktrace) do
+    Logger.info "Checking should_notify"
     reported_stage() && test_filter(exception_filter(), exception, stacktrace)
   end
 
